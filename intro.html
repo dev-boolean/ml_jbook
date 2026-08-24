@@ -328,7 +328,6 @@ document.write(`
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#objetivo">Objetivo</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dataset">Dataset</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#entornos-de-ejecucion">Entornos de ejecución</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#estructura-del-libro">Estructura del libro</a></li>
 </ul>
             </nav>
@@ -368,40 +367,6 @@ visualizaciones de densidad (violin/KDE) donde graficar cada punto no
 aportaría información adicional — ambos casos están señalados explícitamente
 donde ocurren.</p></li>
 </ul>
-</section>
-<section id="entornos-de-ejecucion">
-<h2>Entornos de ejecución<a class="headerlink" href="#entornos-de-ejecucion" title="Link to this heading">#</a></h2>
-<p>Los notebooks <code class="docutils literal notranslate"><span class="pre">00</span></code>–<code class="docutils literal notranslate"><span class="pre">02</span></code>, <code class="docutils literal notranslate"><span class="pre">04</span></code> y <code class="docutils literal notranslate"><span class="pre">06</span></code> corrieron primero en <strong>Google Colab</strong>
-(sin JVM local disponible en ese momento). Ahí surgió un problema real: el
-<code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code> de PySpark en <code class="docutils literal notranslate"><span class="pre">05_modeling_spark.ipynb</span></code> se entrenó
-sin ningún manejo de desbalance de clases y terminó prediciendo “no default”
-para el 100% del test set (precision/recall/F1 = 0.0, a pesar de un ROC AUC
-de 0.71 nada despreciable — la métrica de selección del <code class="docutils literal notranslate"><span class="pre">CrossValidator</span></code>
-no penaliza eso). El lado de scikit-learn evita este problema con una sola
-línea, <code class="docutils literal notranslate"><span class="pre">class_weight=&quot;balanced&quot;</span></code>.</p>
-<p>Con una máquina local disponible (Ryzen 5 5600G, 64GB RAM), <code class="docutils literal notranslate"><span class="pre">03</span></code>, <code class="docutils literal notranslate"><span class="pre">05</span></code> y <code class="docutils literal notranslate"><span class="pre">06</span></code>
-se re-ejecutaron <strong>localmente</strong> — no solo para reemplazar Colab, sino para
-corregir ese modelo. La corrección (pesos balanceados por clase vía
-<code class="docutils literal notranslate"><span class="pre">weightCol</span></code>, calculados a mano con la misma fórmula que usa scikit-learn
-internamente) y su efecto están documentados en <code class="docutils literal notranslate"><span class="pre">05_modeling_spark.ipynb</span></code> y
-discutidos en las <a class="reference internal" href="conclusions.html"><span class="std std-doc">Conclusiones</span></a>.</p>
-<p>Migrar de Colab a Windows local también obligó a resolver una serie de
-problemas específicos de plataforma que no existían en Colab (Linux): PySpark
-necesita <code class="docutils literal notranslate"><span class="pre">winutils.exe</span></code>/<code class="docutils literal notranslate"><span class="pre">hadoop.dll</span></code> incluso para escribir Parquet en el
-filesystem local de Windows; la config de memoria de Spark, calculada
-dinámicamente a partir de los recursos reales de la sesión (ver
-<code class="docutils literal notranslate"><span class="pre">03_preprocessing_spark.ipynb</span></code>), tenía un techo de <code class="docutils literal notranslate"><span class="pre">8g</span></code> heredado del
-enunciado que resultó insuficiente en esta máquina — con 12 hilos lógicos,
-<code class="docutils literal notranslate"><span class="pre">local[*]</span></code> lanza hasta 12 tareas concurrentes de entrenamiento compitiendo
-por ese mismo heap, y provocó <code class="docutils literal notranslate"><span class="pre">OutOfMemoryError</span></code> (más paralelismo generó más
-presión de memoria <em>concurrente</em>, no menos); y el wrapper de Python de
-<code class="docutils literal notranslate"><span class="pre">BinaryClassificationMetrics.roc()</span></code> (API RDD de <code class="docutils literal notranslate"><span class="pre">pyspark.mllib</span></code>) dejó de
-estar disponible en PySpark 3.5.x, por lo que la curva ROC de Spark se
-recalculó con un método alternativo 100% distribuido (agregación por bins de
-probabilidad). Todo esto está documentado inline en los notebooks
-correspondientes.</p>
-<p><code class="docutils literal notranslate"><span class="pre">01</span></code> (EDA) no se volvió a ejecutar: no depende del modelo de Spark y sus
-resultados de Colab siguen siendo válidos.</p>
 </section>
 <section id="estructura-del-libro">
 <h2>Estructura del libro<a class="headerlink" href="#estructura-del-libro" title="Link to this heading">#</a></h2>
@@ -481,7 +446,6 @@ de cada condición obligatoria del proyecto.</p></li>
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#objetivo">Objetivo</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dataset">Dataset</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#entornos-de-ejecucion">Entornos de ejecución</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#estructura-del-libro">Estructura del libro</a></li>
 </ul>
   </nav></div>

@@ -32,7 +32,7 @@
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
   
@@ -388,11 +388,6 @@ cuales repartir el trabajo). scikit-learn + NumPy, en cambio, corre en un
 solo proceso con rutinas en C/Cython ya optimizadas para memoria compartida,
 sin cruzar nunca la frontera JVM↔Python (py4j) que sí paga PySpark en cada
 operación.</p>
-<p>Este proyecto reforzó ese punto de forma muy concreta: la config de memoria
-de Spark tuvo que subirse de los <code class="docutils literal notranslate"><span class="pre">8g</span></code> literales del enunciado a <code class="docutils literal notranslate"><span class="pre">32g</span></code> porque
-en esta máquina (12 hilos) <code class="docutils literal notranslate"><span class="pre">local[*]</span></code> lanza 12 tareas concurrentes que
-saturaban ese heap — es decir, <em>más</em> paralelismo disponible generó <em>más</em>
-necesidad de memoria simultánea, no una ejecución más liviana.</p>
 </section>
 <section id="cual-fue-mas-preciso">
 <h2>¿Cuál fue más preciso?<a class="headerlink" href="#cual-fue-mas-preciso" title="Link to this heading">#</a></h2>
@@ -427,7 +422,7 @@ necesidad de memoria simultánea, no una ejecución más liviana.</p>
 </tbody>
 </table>
 </div>
-<p>Una vez igualada la metodología, <strong>los dos frameworks quedan prácticamente
+<p>Con la misma metodología, <strong>los dos frameworks quedan prácticamente
 empatados</strong> — sklearn gana por poco en accuracy/precision/ROC AUC, PySpark
 gana por poco en recall. Las diferencias (unos pocos puntos porcentuales) son
 del orden esperable entre dos implementaciones distintas de RandomForest:
@@ -435,28 +430,21 @@ scikit-learn busca el split óptimo exacto por nodo, Spark ML usa un método de
 histogramas/bins pensado para escalar a datos distribuidos; además cada
 framework hizo su propio split 80/20 de forma independiente, así que ni
 siquiera son exactamente las mismas filas de test.</p>
-<p><strong>El hallazgo más importante de todo el proyecto no está en esta tabla, sino
-en lo que pasó antes de llegar a ella.</strong> La primera corrida de
-<code class="docutils literal notranslate"><span class="pre">05_modeling_spark.ipynb</span></code> (en Colab) entrenó el <code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code> de
-PySpark <strong>sin ningún manejo de desbalance de clases</strong>. Con ~12% de la clase
-<code class="docutils literal notranslate"><span class="pre">default=1</span></code>, el modelo resultante predecía <code class="docutils literal notranslate"><span class="pre">0</span></code> para el 100% del test:
-precision = recall = F1 = <strong>0.0</strong>, con una matriz de confusión de
-<code class="docutils literal notranslate"><span class="pre">[[398138,</span> <span class="pre">0],</span> <span class="pre">[53382,</span> <span class="pre">0]]</span></code> — cero verdaderos positivos y cero falsos
-positivos. Y sin embargo el ROC AUC de esa corrida era 0.71, muy similar al
-0.7177 de la corrida corregida: el modelo <em>rankeaba</em> razonablemente bien las
-probabilidades, pero el umbral de decisión 0.5 nunca se cruzaba para la
-clase minoritaria. <strong>Un ROC AUC saludable no garantiza un clasificador
-usable</strong> — es la lección aplicada más concreta de este proyecto.</p>
-<p>La razón por la que scikit-learn no tuvo este problema desde el principio es
-una sola línea: <code class="docutils literal notranslate"><span class="pre">class_weight=&quot;balanced&quot;</span></code> en el constructor de
-<code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code>. <code class="docutils literal notranslate"><span class="pre">pyspark.ml.classification.RandomForestClassifier</span></code>
-no tiene un parámetro equivalente — hay que calcular los pesos por clase a
-mano (<code class="docutils literal notranslate"><span class="pre">n_muestras</span> <span class="pre">/</span> <span class="pre">(n_clases</span> <span class="pre">×</span> <span class="pre">n_c)</span></code>, la misma fórmula que usa sklearn
-internamente) y pasarlos vía <code class="docutils literal notranslate"><span class="pre">weightCol</span></code>. Es una diferencia real de
-ergonomía entre frameworks: lo que en scikit-learn es una palabra clave, en
-Spark ML es responsabilidad explícita de quien entrena el modelo — y si se
-omite, el framework no avisa con un error, simplemente entrega un modelo
-inútil con buena pinta en la métrica equivocada.</p>
+<p>Un punto metodológico central para ambos modelos es el manejo del desbalance
+de clases (~12% son <code class="docutils literal notranslate"><span class="pre">default</span></code>). scikit-learn lo resuelve con
+<code class="docutils literal notranslate"><span class="pre">class_weight=&quot;balanced&quot;</span></code> en el constructor de <code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code>;
+<code class="docutils literal notranslate"><span class="pre">pyspark.ml.classification.RandomForestClassifier</span></code> no tiene un parámetro
+equivalente, así que los pesos se calculan manualmente con la misma fórmula
+que usa sklearn internamente (<code class="docutils literal notranslate"><span class="pre">n_muestras</span> <span class="pre">/</span> <span class="pre">(n_clases</span> <span class="pre">×</span> <span class="pre">n_c)</span></code>) y se pasan vía
+<code class="docutils literal notranslate"><span class="pre">weightCol</span></code>. Sin este ajuste, un RandomForest entrenado sobre datos así de
+desbalanceados puede terminar prediciendo casi exclusivamente la clase
+mayoritaria — con una accuracy engañosamente alta (~88%, el porcentaje de la
+clase 0) y un ROC AUC todavía razonable (el AUC mide qué tan bien se
+<em>ordenan</em> las probabilidades, no si el modelo clasifica bien a un umbral
+fijo), pero con precision/recall/F1 cercanos a cero para la clase que
+realmente importa. Por eso el desempeño de un modelo de riesgo crediticio
+debe evaluarse con F1/recall/precision de la clase minoritaria, y no solo con
+accuracy o ROC AUC.</p>
 </section>
 <section id="a-partir-de-que-volumen-de-datos-pyspark-comienza-a-superar-a-scikit-learn">
 <h2>¿A partir de qué volumen de datos PySpark comienza a superar a scikit-learn?<a class="headerlink" href="#a-partir-de-que-volumen-de-datos-pyspark-comienza-a-superar-a-scikit-learn" title="Link to this heading">#</a></h2>
@@ -488,17 +476,17 @@ instancia</em> de por qué el modelo se equivocó en un caso puntual, en términ
 de qué variables empujaron la predicción en cada dirección — accionable para
 un analista de crédito revisando un caso específico, no solo para reportar
 un número de desempeño global.</p>
-<p>La limitación central, confirmada con números reales de esta corrida: LIME
-es <strong>intrínsecamente local</strong> (perturba con NumPy y ajusta una regresión con
-scikit-learn, todo en el proceso Python del driver) y no tiene ningún
-concepto de DataFrame distribuido. Explicar una predicción de un modelo
-Spark exige un puente que, para cada lote de perturbaciones, haga
-<code class="docutils literal notranslate"><span class="pre">createDataFrame</span></code> → <code class="docutils literal notranslate"><span class="pre">VectorAssembler.transform</span></code> → <code class="docutils literal notranslate"><span class="pre">model.transform</span></code> →
-<code class="docutils literal notranslate"><span class="pre">collect</span></code>. El costo es medible y no trivial: cada <code class="docutils literal notranslate"><span class="pre">explain_instance</span></code> contra
-el modelo de PySpark tardó <strong>~39-40 segundos</strong> (incluso con <code class="docutils literal notranslate"><span class="pre">num_samples=500</span></code>,
-ya reducido desde el default de 5,000, precisamente para acotar ese costo),
-contra una respuesta prácticamente instantánea del lado de scikit-learn,
-donde <code class="docutils literal notranslate"><span class="pre">predict_proba</span></code> nunca sale del proceso Python.</p>
+<p>La limitación central es que LIME es <strong>intrínsecamente local</strong> (perturba con
+NumPy y ajusta una regresión con scikit-learn, todo en el proceso Python del
+driver) y no tiene ningún concepto de DataFrame distribuido. Explicar una
+predicción de un modelo Spark exige un puente que, para cada lote de
+perturbaciones, haga <code class="docutils literal notranslate"><span class="pre">createDataFrame</span></code> → <code class="docutils literal notranslate"><span class="pre">VectorAssembler.transform</span></code> →
+<code class="docutils literal notranslate"><span class="pre">model.transform</span></code> → <code class="docutils literal notranslate"><span class="pre">collect</span></code>. El costo es medible y no trivial: cada
+<code class="docutils literal notranslate"><span class="pre">explain_instance</span></code> contra el modelo de PySpark tardó <strong>~39-40 segundos</strong>
+(incluso con <code class="docutils literal notranslate"><span class="pre">num_samples=500</span></code>, ya reducido desde el default de 5,000,
+precisamente para acotar ese costo), contra una respuesta prácticamente
+instantánea del lado de scikit-learn, donde <code class="docutils literal notranslate"><span class="pre">predict_proba</span></code> nunca sale del
+proceso Python.</p>
 <p>Dos limitaciones adicionales, ya señaladas en <code class="docutils literal notranslate"><span class="pre">06_interpretability_lime.ipynb</span></code>:
 los nombres de las variables categóricas de Spark llegan degradados
 (<code class="docutils literal notranslate"><span class="pre">cat_ohe_4</span></code>, <code class="docutils literal notranslate"><span class="pre">cat_ohe_213</span></code>, …) porque <code class="docutils literal notranslate"><span class="pre">pyspark.ml</span></code>’s <code class="docutils literal notranslate"><span class="pre">OneHotEncoder</span></code> no
@@ -529,15 +517,14 @@ hiperparámetros en vez de un bucle ligero como en sklearn — parte de por
 qué el entrenamiento en Spark, aun siendo la etapa donde la brecha
 relativa es menor, sigue tardando 2.2× más.</p></li>
 <li><p><strong>Config de memoria/paralelismo ajustada a los recursos reales de la
-sesión</strong> (en vez de los <code class="docutils literal notranslate"><span class="pre">8g</span></code>/<code class="docutils literal notranslate"><span class="pre">400</span></code> particiones literales del enunciado):
-este proyecto terminó siendo una demostración práctica de por qué esa
-adaptación dinámica importa. La misma fórmula que funcionaba sin problema
-en Colab (2 CPUs, techo de 8GB) provocó <code class="docutils literal notranslate"><span class="pre">OutOfMemoryError</span></code> en la máquina
-local (12 hilos) porque más paralelismo disponible significa más tareas
-concurrentes compitiendo por el mismo heap — hubo que subir el techo a
-32GB. La lección no es “más recursos siempre ayudan”, sino que la relación
-entre paralelismo (<code class="docutils literal notranslate"><span class="pre">shuffle.partitions</span></code>, núcleos de <code class="docutils literal notranslate"><span class="pre">local[*]</span></code>) y memoria
-del driver tiene que escalar <em>junta</em>, no por separado.</p></li>
+máquina</strong> (en vez de los <code class="docutils literal notranslate"><span class="pre">8g</span></code>/<code class="docutils literal notranslate"><span class="pre">400</span></code> particiones literales del enunciado):
+<code class="docutils literal notranslate"><span class="pre">shuffle.partitions</span></code> y el paralelismo de <code class="docutils literal notranslate"><span class="pre">local[*]</span></code> escalan con los
+núcleos disponibles, y la memoria del driver tiene que escalar en esa
+misma proporción — más núcleos habilitan más tareas de entrenamiento
+concurrentes, y cada una necesita su propio espacio de heap. Tratar
+paralelismo y memoria como parámetros independientes, en vez de ajustarlos
+juntos según el hardware real, es la forma más común de subestimar cuánta
+memoria necesita en realidad una sesión de Spark local.</p></li>
 </ul>
 </section>
 </section>

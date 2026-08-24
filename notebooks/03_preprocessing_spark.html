@@ -32,7 +32,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
   
@@ -352,8 +352,6 @@ CSV crudo (no el parquet ya limpio de pandas), con su propio
 <code class="docutils literal notranslate"><span class="pre">StringIndexer</span></code>/<code class="docutils literal notranslate"><span class="pre">OneHotEncoder</span></code>/<code class="docutils literal notranslate"><span class="pre">VectorAssembler</span></code>. En ningún momento se usa
 <code class="docutils literal notranslate"><span class="pre">.toPandas()</span></code> ni <code class="docutils literal notranslate"><span class="pre">.collect()</span></code> sobre el DataFrame completo — solo sobre
 agregados pequeños (conteos por categoría para detectar categorías raras).</p>
-<p>Ejecutado <strong>localmente</strong> (PC propio: Ryzen 5 5600G / 64GB RAM / Java 17),
-en vez de Google Colab.</p>
 <section id="java-utils-py-local">
 <h2>1. Java + utils.py local<a class="headerlink" href="#java-utils-py-local" title="Link to this heading">#</a></h2>
 <div class="cell docutils container">
@@ -412,7 +410,7 @@ HADOOP_HOME: C:\Users\boolean\Downloads\requirements fin\Copy of requirements/to
 tiene efecto: driver y “executor” comparten la misma JVM, y lo único que
 realmente limita la memoria disponible es <code class="docutils literal notranslate"><span class="pre">spark.driver.memory</span></code>. Además,
 <code class="docutils literal notranslate"><span class="pre">400</span></code> particiones de shuffle tiene sentido para un cluster con decenas de
-cores — en esta máquina (unos pocos/varios vCPUs) 400 particiones para
+cores — con muchos menos núcleos disponibles, 400 particiones para
 ~2.26M filas generarían particiones diminutas y un overhead de
 planificación de tareas desproporcionado. Por eso se usa la config de abajo,
 calculada dinámicamente a partir de los recursos reales de esta sesión
@@ -637,10 +635,9 @@ completo, así que el <code class="docutils literal notranslate"><span class="pr
 <section id="ejecutar-el-pipeline-de-transformacion-y-cachear">
 <h2>7. Ejecutar el pipeline de transformación y cachear<a class="headerlink" href="#ejecutar-el-pipeline-de-transformacion-y-cachear" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">.persist(StorageLevel.MEMORY_AND_DISK)</span></code> es obligatorio por el enunciado.
-Se usa <code class="docutils literal notranslate"><span class="pre">MEMORY_AND_DISK</span></code> (no solo <code class="docutils literal notranslate"><span class="pre">.cache()</span></code>, que es memoria pura) porque
-aunque esta máquina tiene bastante RAM, es la misma política robusta usada
-en Colab: si no cabe todo en memoria, Spark derrama a disco en vez de
-fallar.</p>
+Se usa <code class="docutils literal notranslate"><span class="pre">MEMORY_AND_DISK</span></code> (no solo <code class="docutils literal notranslate"><span class="pre">.cache()</span></code>, que es memoria pura) como
+política robusta: si el DataFrame cacheado no cabe completo en memoria,
+Spark derrama a disco en vez de fallar.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>

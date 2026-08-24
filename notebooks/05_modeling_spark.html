@@ -32,7 +32,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
   
@@ -327,9 +327,7 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sparksession">1. SparkSession</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cargar-los-splits-preprocesados-parquet-de-03-preprocessing-spark-ipynb">2. Cargar los splits preprocesados (Parquet de <code class="docutils literal notranslate"><span class="pre">03_preprocessing_spark.ipynb</span></code>)</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#peso-balanceado-por-clase-equivalente-a-class-weight-balanced">3. Peso balanceado por clase (equivalente a <code class="docutils literal notranslate"><span class="pre">class_weight="balanced"</span></code>)</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#paramgridbuilder-crossvalidator">4. ParamGridBuilder + CrossValidator</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prediccion-y-metricas-sobre-el-test-set">5. Predicción y métricas sobre el test set</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#curva-roc">6. Curva ROC</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#importancia-de-variables">7. Importancia de variables</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-modelo-y-resultados">8. Guardar modelo y resultados</a></li>
 </ul>
@@ -350,19 +348,12 @@ document.write(`
 <code class="docutils literal notranslate"><span class="pre">for</span></code>, tal como exige el enunciado), sobre la misma grilla de
 hiperparámetros que el lado de scikit-learn: <code class="docutils literal notranslate"><span class="pre">numTrees:</span> <span class="pre">[10,</span> <span class="pre">50,</span> <span class="pre">100]</span></code> ×
 <code class="docutils literal notranslate"><span class="pre">maxDepth:</span> <span class="pre">[5,</span> <span class="pre">10,</span> <span class="pre">15]</span></code>.</p>
-<p><strong>Corrección respecto a la corrida original en Colab:</strong> esa corrida
-entrenaba <code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code> sin ningún manejo de desbalance de
-clases. Con ~12% de la clase <code class="docutils literal notranslate"><span class="pre">default=1</span></code>, el modelo resultante predecía
-<code class="docutils literal notranslate"><span class="pre">0</span></code> para el 100% de las filas de test (precision/recall/F1 = 0.0, a pesar
-de un ROC AUC de 0.71 nada despreciable — el ranking de probabilidades era
-razonable, pero el umbral 0.5 nunca se cruzaba para la clase minoritaria).
-El lado de scikit-learn evita esto con una sola línea,
-<code class="docutils literal notranslate"><span class="pre">class_weight=&quot;balanced&quot;</span></code> (ver <code class="docutils literal notranslate"><span class="pre">04_modeling_sklearn.ipynb</span></code>); Spark ML no
-tiene un flag equivalente en el estimador, así que aquí se calculan pesos
-balanceados por clase a mano (misma fórmula que usa internamente sklearn:
-<code class="docutils literal notranslate"><span class="pre">w_c</span> <span class="pre">=</span> <span class="pre">n_muestras</span> <span class="pre">/</span> <span class="pre">(n_clases</span> <span class="pre">*</span> <span class="pre">n_c)</span></code>) y se pasan vía <code class="docutils literal notranslate"><span class="pre">weightCol</span></code> — la
-diferencia de ergonomía entre frameworks es en sí misma un punto de
-comparación válido para la sección de conclusiones.</p>
+<p><strong>Manejo de desbalance de clases:</strong> con ~12% de la clase <code class="docutils literal notranslate"><span class="pre">default=1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">RandomForestClassifier</span></code> de <code class="docutils literal notranslate"><span class="pre">pyspark.ml</span></code> no tiene un parámetro
+<code class="docutils literal notranslate"><span class="pre">class_weight</span></code> como scikit-learn (ver <code class="docutils literal notranslate"><span class="pre">04_modeling_sklearn.ipynb</span></code>), así que
+los pesos balanceados por clase se calculan a mano (misma fórmula que usa
+internamente sklearn: <code class="docutils literal notranslate"><span class="pre">w_c</span> <span class="pre">=</span> <span class="pre">n_muestras</span> <span class="pre">/</span> <span class="pre">(n_clases</span> <span class="pre">*</span> <span class="pre">n_c)</span></code>) y se pasan vía
+<code class="docutils literal notranslate"><span class="pre">weightCol</span></code>.</p>
 <section id="setup-java-pyspark-utils-py-local">
 <h2>Setup: Java, PySpark, utils.py local<a class="headerlink" href="#setup-java-pyspark-utils-py-local" title="Link to this heading">#</a></h2>
 <div class="cell docutils container">
@@ -475,14 +466,10 @@ Pesos balanceados por clase: {0: 0.5674398881599308, 1: 4.207004961324013}
 </div>
 </div>
 </div>
-</section>
-<section id="paramgridbuilder-crossvalidator">
-<h2>4. ParamGridBuilder + CrossValidator<a class="headerlink" href="#paramgridbuilder-crossvalidator" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">numFolds=2</span></code>: dentro del rango permitido por el enunciado (2 o 3); se
-eligió el valor más bajo permitido originalmente por el límite de tiempo de
-conexión de las sesiones gratuitas de Colab. Se mantiene igual aquí para no
-alterar la metodología ya justificada — el fix de esta corrida es el
-manejo de clases, no el diseño de la validación cruzada.</p>
+elige el valor más bajo para acotar el costo de la validación cruzada
+(<code class="docutils literal notranslate"><span class="pre">numFolds=3</span></code> supondría 50% más ajustes – 27 vs 18 – para la misma
+grilla de hiperparámetros).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml.classification</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandomForestClassifier</span>
@@ -4503,21 +4490,11 @@ if (outputEl) {{
 
                         })                };            </script>        </div></div></div>
 </div>
-</section>
-<section id="curva-roc">
-<h2>6. Curva ROC<a class="headerlink" href="#curva-roc" title="Link to this heading">#</a></h2>
 <p>Curva ROC calculada de forma distribuida por <em>binning</em> de probabilidades:
 una sola pasada de <code class="docutils literal notranslate"><span class="pre">groupBy</span></code> sobre 200 buckets de <code class="docutils literal notranslate"><span class="pre">prob_1</span></code> (agregación
 acotada – a lo sumo 200 filas de salida) y el <code class="docutils literal notranslate"><span class="pre">.collect()</span></code> es sobre ese
 agregado, no sobre las ~450K filas de test. Las sumas acumuladas que arman
 la curva se hacen sobre esos 200 puntos ya en el driver.</p>
-<p><strong>Nota de compatibilidad:</strong> originalmente se usaba
-<code class="docutils literal notranslate"><span class="pre">pyspark.mllib.evaluation.BinaryClassificationMetrics(...).roc()</span></code>, pero en
-PySpark 3.5.x el wrapper Python de esa clase dejó de exponer <code class="docutils literal notranslate"><span class="pre">.roc()</span></code>/
-<code class="docutils literal notranslate"><span class="pre">.pr()</span></code> (solo quedan las propiedades escalares <code class="docutils literal notranslate"><span class="pre">areaUnderROC</span></code>/<code class="docutils literal notranslate"><span class="pre">areaUnderPR</span></code>)
-y el puente genérico hacia el objeto JVM (<code class="docutils literal notranslate"><span class="pre">.call(&quot;roc&quot;)</span></code>) devuelve tuplas
-de Scala sin deserializar correctamente a través de py4j en esta versión
-– de ahí el cálculo por bins como alternativa 100% distribuida.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">vector_to_array</span>
@@ -4705,9 +4682,7 @@ de Scala sin deserializar correctamente a través de py4j en esta versión
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sparksession">1. SparkSession</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cargar-los-splits-preprocesados-parquet-de-03-preprocessing-spark-ipynb">2. Cargar los splits preprocesados (Parquet de <code class="docutils literal notranslate"><span class="pre">03_preprocessing_spark.ipynb</span></code>)</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#peso-balanceado-por-clase-equivalente-a-class-weight-balanced">3. Peso balanceado por clase (equivalente a <code class="docutils literal notranslate"><span class="pre">class_weight="balanced"</span></code>)</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#paramgridbuilder-crossvalidator">4. ParamGridBuilder + CrossValidator</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prediccion-y-metricas-sobre-el-test-set">5. Predicción y métricas sobre el test set</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#curva-roc">6. Curva ROC</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#importancia-de-variables">7. Importancia de variables</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-modelo-y-resultados">8. Guardar modelo y resultados</a></li>
 </ul>

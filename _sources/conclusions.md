@@ -30,12 +30,6 @@ solo proceso con rutinas en C/Cython ya optimizadas para memoria compartida,
 sin cruzar nunca la frontera JVM↔Python (py4j) que sí paga PySpark en cada
 operación.
 
-Este proyecto reforzó ese punto de forma muy concreta: la config de memoria
-de Spark tuvo que subirse de los `8g` literales del enunciado a `32g` porque
-en esta máquina (12 hilos) `local[*]` lanza 12 tareas concurrentes que
-saturaban ese heap — es decir, *más* paralelismo disponible generó *más*
-necesidad de memoria simultánea, no una ejecución más liviana.
-
 ## ¿Cuál fue más preciso?
 
 | Métrica | scikit-learn | PySpark |
@@ -46,7 +40,7 @@ necesidad de memoria simultánea, no una ejecución más liviana.
 | F1 | 0.3173 | 0.3082 |
 | ROC AUC | 0.7245 | 0.7177 |
 
-Una vez igualada la metodología, **los dos frameworks quedan prácticamente
+Con la misma metodología, **los dos frameworks quedan prácticamente
 empatados** — sklearn gana por poco en accuracy/precision/ROC AUC, PySpark
 gana por poco en recall. Las diferencias (unos pocos puntos porcentuales) son
 del orden esperable entre dos implementaciones distintas de RandomForest:
@@ -55,29 +49,21 @@ histogramas/bins pensado para escalar a datos distribuidos; además cada
 framework hizo su propio split 80/20 de forma independiente, así que ni
 siquiera son exactamente las mismas filas de test.
 
-**El hallazgo más importante de todo el proyecto no está en esta tabla, sino
-en lo que pasó antes de llegar a ella.** La primera corrida de
-`05_modeling_spark.ipynb` (en Colab) entrenó el `RandomForestClassifier` de
-PySpark **sin ningún manejo de desbalance de clases**. Con ~12% de la clase
-`default=1`, el modelo resultante predecía `0` para el 100% del test:
-precision = recall = F1 = **0.0**, con una matriz de confusión de
-`[[398138, 0], [53382, 0]]` — cero verdaderos positivos y cero falsos
-positivos. Y sin embargo el ROC AUC de esa corrida era 0.71, muy similar al
-0.7177 de la corrida corregida: el modelo *rankeaba* razonablemente bien las
-probabilidades, pero el umbral de decisión 0.5 nunca se cruzaba para la
-clase minoritaria. **Un ROC AUC saludable no garantiza un clasificador
-usable** — es la lección aplicada más concreta de este proyecto.
-
-La razón por la que scikit-learn no tuvo este problema desde el principio es
-una sola línea: `class_weight="balanced"` en el constructor de
-`RandomForestClassifier`. `pyspark.ml.classification.RandomForestClassifier`
-no tiene un parámetro equivalente — hay que calcular los pesos por clase a
-mano (`n_muestras / (n_clases × n_c)`, la misma fórmula que usa sklearn
-internamente) y pasarlos vía `weightCol`. Es una diferencia real de
-ergonomía entre frameworks: lo que en scikit-learn es una palabra clave, en
-Spark ML es responsabilidad explícita de quien entrena el modelo — y si se
-omite, el framework no avisa con un error, simplemente entrega un modelo
-inútil con buena pinta en la métrica equivocada.
+Un punto metodológico central para ambos modelos es el manejo del desbalance
+de clases (~12% son `default`). scikit-learn lo resuelve con
+`class_weight="balanced"` en el constructor de `RandomForestClassifier`;
+`pyspark.ml.classification.RandomForestClassifier` no tiene un parámetro
+equivalente, así que los pesos se calculan manualmente con la misma fórmula
+que usa sklearn internamente (`n_muestras / (n_clases × n_c)`) y se pasan vía
+`weightCol`. Sin este ajuste, un RandomForest entrenado sobre datos así de
+desbalanceados puede terminar prediciendo casi exclusivamente la clase
+mayoritaria — con una accuracy engañosamente alta (~88%, el porcentaje de la
+clase 0) y un ROC AUC todavía razonable (el AUC mide qué tan bien se
+*ordenan* las probabilidades, no si el modelo clasifica bien a un umbral
+fijo), pero con precision/recall/F1 cercanos a cero para la clase que
+realmente importa. Por eso el desempeño de un modelo de riesgo crediticio
+debe evaluarse con F1/recall/precision de la clase minoritaria, y no solo con
+accuracy o ROC AUC.
 
 ## ¿A partir de qué volumen de datos PySpark comienza a superar a scikit-learn?
 
@@ -109,17 +95,17 @@ de qué variables empujaron la predicción en cada dirección — accionable par
 un analista de crédito revisando un caso específico, no solo para reportar
 un número de desempeño global.
 
-La limitación central, confirmada con números reales de esta corrida: LIME
-es **intrínsecamente local** (perturba con NumPy y ajusta una regresión con
-scikit-learn, todo en el proceso Python del driver) y no tiene ningún
-concepto de DataFrame distribuido. Explicar una predicción de un modelo
-Spark exige un puente que, para cada lote de perturbaciones, haga
-`createDataFrame` → `VectorAssembler.transform` → `model.transform` →
-`collect`. El costo es medible y no trivial: cada `explain_instance` contra
-el modelo de PySpark tardó **~39-40 segundos** (incluso con `num_samples=500`,
-ya reducido desde el default de 5,000, precisamente para acotar ese costo),
-contra una respuesta prácticamente instantánea del lado de scikit-learn,
-donde `predict_proba` nunca sale del proceso Python.
+La limitación central es que LIME es **intrínsecamente local** (perturba con
+NumPy y ajusta una regresión con scikit-learn, todo en el proceso Python del
+driver) y no tiene ningún concepto de DataFrame distribuido. Explicar una
+predicción de un modelo Spark exige un puente que, para cada lote de
+perturbaciones, haga `createDataFrame` → `VectorAssembler.transform` →
+`model.transform` → `collect`. El costo es medible y no trivial: cada
+`explain_instance` contra el modelo de PySpark tardó **~39-40 segundos**
+(incluso con `num_samples=500`, ya reducido desde el default de 5,000,
+precisamente para acotar ese costo), contra una respuesta prácticamente
+instantánea del lado de scikit-learn, donde `predict_proba` nunca sale del
+proceso Python.
 
 Dos limitaciones adicionales, ya señaladas en `06_interpretability_lime.ipynb`:
 los nombres de las variables categóricas de Spark llegan degradados
@@ -150,12 +136,11 @@ puntual, no describir el dataset entero).
   qué el entrenamiento en Spark, aun siendo la etapa donde la brecha
   relativa es menor, sigue tardando 2.2× más.
 - **Config de memoria/paralelismo ajustada a los recursos reales de la
-  sesión** (en vez de los `8g`/`400` particiones literales del enunciado):
-  este proyecto terminó siendo una demostración práctica de por qué esa
-  adaptación dinámica importa. La misma fórmula que funcionaba sin problema
-  en Colab (2 CPUs, techo de 8GB) provocó `OutOfMemoryError` en la máquina
-  local (12 hilos) porque más paralelismo disponible significa más tareas
-  concurrentes compitiendo por el mismo heap — hubo que subir el techo a
-  32GB. La lección no es "más recursos siempre ayudan", sino que la relación
-  entre paralelismo (`shuffle.partitions`, núcleos de `local[*]`) y memoria
-  del driver tiene que escalar *junta*, no por separado.
+  máquina** (en vez de los `8g`/`400` particiones literales del enunciado):
+  `shuffle.partitions` y el paralelismo de `local[*]` escalan con los
+  núcleos disponibles, y la memoria del driver tiene que escalar en esa
+  misma proporción — más núcleos habilitan más tareas de entrenamiento
+  concurrentes, y cada una necesita su propio espacio de heap. Tratar
+  paralelismo y memoria como parámetros independientes, en vez de ajustarlos
+  juntos según el hardware real, es la forma más común de subestimar cuánta
+  memoria necesita en realidad una sesión de Spark local.
