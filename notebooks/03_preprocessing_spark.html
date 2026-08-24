@@ -1,0 +1,891 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>03 · Preprocesamiento — PySpark &#8212; Predicción de Default en Préstamos — Lending Club: scikit-learn vs PySpark</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="../_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/03_preprocessing_spark';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="04 · Modelado — scikit-learn (RandomForest + GridSearchCV)" href="04_modeling_sklearn.html" />
+    <link rel="prev" title="02 · Preprocesamiento — scikit-learn" href="02_preprocessing_sklearn.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Predicción de Default en Préstamos — Lending Club: scikit-learn vs PySpark</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="00_setup_datos.html">00 · Preparación de datos (Lending Club)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="01_eda.html">01 · Análisis Exploratorio de Datos (EDA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_preprocessing_sklearn.html">02 · Preprocesamiento — scikit-learn</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">03 · Preprocesamiento — PySpark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_modeling_sklearn.html">04 · Modelado — scikit-learn (RandomForest + GridSearchCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_modeling_spark.html">05 · Modelado — PySpark (RandomForest + CrossValidator)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_interpretability_lime.html">06 · Interpretabilidad con LIME</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_comparison.html">07 · Comparación de resultados: scikit-learn vs PySpark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conclusions.html">Conclusiones y reflexión crítica</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/notebooks/03_preprocessing_spark.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>03 · Preprocesamiento — PySpark</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#java-utils-py-local">1. Java + utils.py local</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuracion-de-la-sesion-de-spark">2. Configuración de la sesión de Spark</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#leer-el-csv-completo-con-spark">3. Leer el CSV completo con Spark</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limpieza-filas-vacias-target-emp-length-nulos-categorias-raras">4. Limpieza: filas vacías, target, <code class="docutils literal notranslate"><span class="pre">emp_length</span></code>, nulos, categorías raras</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stringindexer-onehotencoder">5. StringIndexer + OneHotEncoder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vectorassembler-standardscaler">6. VectorAssembler + StandardScaler</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ejecutar-el-pipeline-de-transformacion-y-cachear">7. Ejecutar el pipeline de transformación y cachear</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#division-train-test-80-20-estratificada">8. División train/test 80/20 estratificada</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-splits-y-metadatos">9. Guardar splits y metadatos</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificacion">10. Verificación</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="preprocesamiento-pyspark">
+<h1>03 · Preprocesamiento — PySpark<a class="headerlink" href="#preprocesamiento-pyspark" title="Link to this heading">#</a></h1>
+<p><strong>Autores:</strong> Santiago Hurtado, Juan Marín, Andrés Parejo</p>
+<p>Pipeline de PySpark <strong>independiente</strong> del de scikit-learn: vuelve a leer el
+CSV crudo (no el parquet ya limpio de pandas), con su propio
+<code class="docutils literal notranslate"><span class="pre">StringIndexer</span></code>/<code class="docutils literal notranslate"><span class="pre">OneHotEncoder</span></code>/<code class="docutils literal notranslate"><span class="pre">VectorAssembler</span></code>. En ningún momento se usa
+<code class="docutils literal notranslate"><span class="pre">.toPandas()</span></code> ni <code class="docutils literal notranslate"><span class="pre">.collect()</span></code> sobre el DataFrame completo — solo sobre
+agregados pequeños (conteos por categoría para detectar categorías raras).</p>
+<p>Ejecutado <strong>localmente</strong> (PC propio: Ryzen 5 5600G / 64GB RAM / Java 17),
+en vez de Google Colab.</p>
+<section id="java-utils-py-local">
+<h2>1. Java + utils.py local<a class="headerlink" href="#java-utils-py-local" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">".."</span><span class="p">))</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">utils</span>
+
+<span class="n">java_home</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setup_java_home</span><span class="p">()</span>
+<span class="n">hadoop_home</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setup_hadoop_home</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"JAVA_HOME:"</span><span class="p">,</span> <span class="n">java_home</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"HADOOP_HOME:"</span><span class="p">,</span> <span class="n">hadoop_home</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>JAVA_HOME: C:\Users\boolean\Downloads\requirements fin\Copy of requirements/tools\jdk-17.0.20.1+1
+HADOOP_HOME: C:\Users\boolean\Downloads\requirements fin\Copy of requirements/tools/hadoop
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"No se encontró el CSV en </span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB listo en </span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1.68 GB listo en C:\Users\boolean\Downloads\archive\accepted_2007_to_2018q4.csv\accepted_2007_to_2018Q4.csv
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="configuracion-de-la-sesion-de-spark">
+<h2>2. Configuración de la sesión de Spark<a class="headerlink" href="#configuracion-de-la-sesion-de-spark" title="Link to this heading">#</a></h2>
+<p>El enunciado exige literalmente este bloque:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">spark</span> <span class="o">=</span> <span class="n">SparkSession</span><span class="o">.</span><span class="n">builder</span> \
+    <span class="o">.</span><span class="n">appName</span><span class="p">(</span><span class="s2">"LendingClub_Optimized"</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.sql.shuffle.partitions"</span><span class="p">,</span> <span class="s2">"400"</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.default.parallelism"</span><span class="p">,</span> <span class="s2">"400"</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.executor.memory"</span><span class="p">,</span> <span class="s2">"8g"</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.driver.memory"</span><span class="p">,</span> <span class="s2">"8g"</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.memory.fraction"</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.memory.storageFraction"</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)</span> \
+    <span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>En <strong>modo local</strong> (<code class="docutils literal notranslate"><span class="pre">local[*]</span></code>, sin cluster real) <code class="docutils literal notranslate"><span class="pre">spark.executor.memory</span></code> no
+tiene efecto: driver y “executor” comparten la misma JVM, y lo único que
+realmente limita la memoria disponible es <code class="docutils literal notranslate"><span class="pre">spark.driver.memory</span></code>. Además,
+<code class="docutils literal notranslate"><span class="pre">400</span></code> particiones de shuffle tiene sentido para un cluster con decenas de
+cores — en esta máquina (unos pocos/varios vCPUs) 400 particiones para
+~2.26M filas generarían particiones diminutas y un overhead de
+planificación de tareas desproporcionado. Por eso se usa la config de abajo,
+calculada dinámicamente a partir de los recursos reales de esta sesión
+(<code class="docutils literal notranslate"><span class="pre">spark.driver.memory</span></code>/<code class="docutils literal notranslate"><span class="pre">shuffle.partitions</span></code>/<code class="docutils literal notranslate"><span class="pre">parallelism</span></code> “equivalentes
+debidamente justificados”, tal como el enunciado permite explícitamente).
+El resto de parámetros (<code class="docutils literal notranslate"><span class="pre">memory.fraction</span></code>, <code class="docutils literal notranslate"><span class="pre">memory.storageFraction</span></code>) sí se
+mantienen literales, porque son fracciones/proporciones, no tamaños
+absolutos — no dependen del hardware.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">driver_mem_gb</span><span class="p">,</span> <span class="n">shuffle_partitions</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_spark_driver_config</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Recursos detectados: </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"-&gt; spark.driver.memory = </span><span class="si">{</span><span class="n">driver_mem_gb</span><span class="si">}</span><span class="s2">g | shuffle.partitions/parallelism = </span><span class="si">{</span><span class="n">shuffle_partitions</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Recursos detectados: {'cpu_count': 12, 'total_ram_gb': 63.3, 'free_ram_gb': 52.49}
+-&gt; spark.driver.memory = 32g | shuffle.partitions/parallelism = 36
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparkSession</span>
+
+<span class="n">spark</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">SparkSession</span><span class="o">.</span><span class="n">builder</span>
+    <span class="o">.</span><span class="n">appName</span><span class="p">(</span><span class="s2">"LendingClub_Optimized"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">master</span><span class="p">(</span><span class="s2">"local[*]"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.sql.shuffle.partitions"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">shuffle_partitions</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.default.parallelism"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">shuffle_partitions</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.driver.memory"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">driver_mem_gb</span><span class="si">}</span><span class="s2">g"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.executor.memory"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">driver_mem_gb</span><span class="si">}</span><span class="s2">g"</span><span class="p">)</span>  <span class="c1"># no-op en local[*], se deja por completitud</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.memory.fraction"</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="s2">"spark.memory.storageFraction"</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
+<span class="p">)</span>
+<span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span><span class="o">.</span><span class="n">setLogLevel</span><span class="p">(</span><span class="s2">"WARN"</span><span class="p">)</span>
+<span class="n">spark</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html">
+            <div>
+                <p><b>SparkSession - in-memory</b></p>
+                
+        <div>
+            <p><b>SparkContext</b></p>
+
+            <p><a href="http://DESKTOP-BE6V86N.NL-WR8103:4040">Spark UI</a></p>
+
+            <dl>
+              <dt>Version</dt>
+                <dd><code>v3.5.9</code></dd>
+              <dt>Master</dt>
+                <dd><code>local[*]</code></dd>
+              <dt>AppName</dt>
+                <dd><code>LendingClub_Optimized</code></dd>
+            </dl>
+        </div>
+        
+            </div>
+        </div></div>
+</div>
+</section>
+<section id="leer-el-csv-completo-con-spark">
+<h2>3. Leer el CSV completo con Spark<a class="headerlink" href="#leer-el-csv-completo-con-spark" title="Link to this heading">#</a></h2>
+<p>Se lee primero con todas las columnas como <code class="docutils literal notranslate"><span class="pre">string</span></code> (sin <code class="docutils literal notranslate"><span class="pre">inferSchema</span></code>, que
+forzaría un pase completo extra solo para adivinar tipos) y se
+selecciona/castea explícitamente el mismo subconjunto de 24 columnas +
+<code class="docutils literal notranslate"><span class="pre">loan_status</span></code> usado del lado de scikit-learn — así ambos frameworks
+entrenan sobre exactamente las mismas variables, y la comparación de
+desempeño mide el framework, no diferencias de features.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">raw</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">"file:///</span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="mi">92</span><span class="p">),</span><span class="w"> </span><span class="s1">'/'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inferSchema</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">t_read</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Lectura (lazy) declarada en </span><span class="si">{</span><span class="n">t_read</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s | columnas originales: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Lectura (lazy) declarada en 2.77s | columnas originales: 151
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sdf</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_USECOLS</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DoubleType</span>
+
+<span class="n">numeric_raw_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"dti"</span><span class="p">,</span> <span class="s2">"revol_util"</span><span class="p">,</span> <span class="s2">"mort_acc"</span><span class="p">,</span> <span class="s2">"annual_inc"</span><span class="p">,</span> <span class="s2">"pub_rec"</span><span class="p">,</span>
+                     <span class="s2">"delinq_2yrs"</span><span class="p">,</span> <span class="s2">"fico_range_high"</span><span class="p">,</span> <span class="s2">"fico_range_low"</span><span class="p">,</span> <span class="s2">"int_rate"</span><span class="p">,</span>
+                     <span class="s2">"installment"</span><span class="p">,</span> <span class="s2">"open_acc"</span><span class="p">,</span> <span class="s2">"total_acc"</span><span class="p">,</span> <span class="s2">"revol_bal"</span><span class="p">,</span> <span class="s2">"loan_amnt"</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">numeric_raw_cols</span><span class="p">:</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DoubleType</span><span class="p">()))</span>
+
+<span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">"term"</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"term"</span><span class="p">)))</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">n_rows_raw</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>  <span class="c1"># accion pequena (un entero), no una recoleccion del dataset</span>
+<span class="n">t_count</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Filas leidas: </span><span class="si">{</span><span class="n">n_rows_raw</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> en </span><span class="si">{</span><span class="n">t_count</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s (accion real que dispara la lectura completa)"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">n_rows_raw</span> <span class="o">&gt;</span> <span class="mi">1_300_000</span><span class="p">,</span> <span class="s2">"Menos de 1.3M filas -- viola la condicion obligatoria del dataset completo"</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Filas leidas: 2,260,701 en 1.40s (accion real que dispara la lectura completa)
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="limpieza-filas-vacias-target-emp-length-nulos-categorias-raras">
+<h2>4. Limpieza: filas vacías, target, <code class="docutils literal notranslate"><span class="pre">emp_length</span></code>, nulos, categorías raras<a class="headerlink" href="#limpieza-filas-vacias-target-emp-length-nulos-categorias-raras" title="Link to this heading">#</a></h2>
+<p>Réplica en Spark de las mismas decisiones tomadas en pandas
+(<code class="docutils literal notranslate"><span class="pre">00_setup_datos.ipynb</span></code>), para que ambos frameworks entrenen sobre datos
+equivalentes.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"loan_status"</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
+
+<span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"loan_status"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"Charged Off"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">"double"</span><span class="p">))</span>
+
+<span class="n">emp_length_map</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">EMP_LENGTH_MAP</span>
+<span class="n">emp_expr</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"emp_length"</span><span class="p">)</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span> <span class="kc">None</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">emp_length_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">emp_expr</span> <span class="o">=</span> <span class="n">emp_expr</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"emp_length"</span><span class="p">)</span> <span class="o">==</span> <span class="n">k</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+<span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">"emp_length_num"</span><span class="p">,</span> <span class="n">emp_expr</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DoubleType</span><span class="p">()))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Filas tras quitar vacías:"</span><span class="p">,</span> <span class="n">sdf</span><span class="o">.</span><span class="n">count</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Filas tras quitar vacías: 2260668
+</pre></div>
+</div>
+</div>
+</div>
+<p>Imputación de nulos numéricos con la mediana vía <code class="docutils literal notranslate"><span class="pre">pyspark.ml.feature.Imputer</span></code>
+(equivalente a <code class="docutils literal notranslate"><span class="pre">fillna(median())</span></code> en pandas, pero calculado de forma
+distribuida sin traer la columna al driver).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml.feature</span><span class="w"> </span><span class="kn">import</span> <span class="n">Imputer</span>
+
+<span class="n">impute_cols</span> <span class="o">=</span> <span class="n">numeric_raw_cols</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"emp_length_num"</span><span class="p">]</span>
+<span class="n">imputer</span> <span class="o">=</span> <span class="n">Imputer</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">"median"</span><span class="p">,</span> <span class="n">inputCols</span><span class="o">=</span><span class="n">impute_cols</span><span class="p">,</span> <span class="n">outputCols</span><span class="o">=</span><span class="n">impute_cols</span><span class="p">)</span>
+<span class="n">sdf</span> <span class="o">=</span> <span class="n">imputer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sdf</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">sdf</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Agrupar categorías raras (&lt;1%) en <code class="docutils literal notranslate"><span class="pre">purpose</span></code>, <code class="docutils literal notranslate"><span class="pre">home_ownership</span></code>, <code class="docutils literal notranslate"><span class="pre">addr_state</span></code>
+— mismo criterio que en pandas. <code class="docutils literal notranslate"><span class="pre">groupBy().count()</span></code> es una agregación
+pequeña (a lo sumo ~50 filas de salida), no una recolección del dataset
+completo, así que el <code class="docutils literal notranslate"><span class="pre">.collect()</span></code> sobre <em>eso</em> sí está permitido.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_total</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+<span class="n">rare_label</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"purpose"</span><span class="p">:</span> <span class="s2">"other"</span><span class="p">,</span> <span class="s2">"home_ownership"</span><span class="p">:</span> <span class="s2">"OTHER"</span><span class="p">,</span> <span class="s2">"addr_state"</span><span class="p">:</span> <span class="s2">"Other"</span><span class="p">}</span>
+
+<span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"purpose"</span><span class="p">,</span> <span class="s2">"home_ownership"</span><span class="p">,</span> <span class="s2">"addr_state"</span><span class="p">]:</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>  <span class="c1"># agregado pequeño, no el dataset completo</span>
+    <span class="n">rare_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">counts</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">"count"</span><span class="p">]</span> <span class="o">/</span> <span class="n">n_total</span> <span class="o">&lt;</span> <span class="n">utils</span><span class="o">.</span><span class="n">RARE_CATEGORY_THRESHOLD</span><span class="p">]</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+        <span class="n">col</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">rare_values</span><span class="p">),</span> <span class="n">rare_label</span><span class="p">[</span><span class="n">col</span><span class="p">])</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rare_values</span><span class="p">)</span><span class="si">}</span><span class="s2"> categorías agrupadas en '</span><span class="si">{</span><span class="n">rare_label</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="si">}</span><span class="s2">'"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>purpose: 261 categorías agrupadas en 'other'
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>home_ownership: 4 categorías agrupadas en 'OTHER'
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>addr_state: 243 categorías agrupadas en 'Other'
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="stringindexer-onehotencoder">
+<h2>5. StringIndexer + OneHotEncoder<a class="headerlink" href="#stringindexer-onehotencoder" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml.feature</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIndexer</span><span class="p">,</span> <span class="n">OneHotEncoder</span> <span class="k">as</span> <span class="n">SparkOHE</span><span class="p">,</span> <span class="n">VectorAssembler</span><span class="p">,</span> <span class="n">StandardScaler</span> <span class="k">as</span> <span class="n">SparkScaler</span>
+
+<span class="n">categorical_cols</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">CATEGORICAL_COLS</span>
+<span class="n">indexers</span> <span class="o">=</span> <span class="p">[</span><span class="n">StringIndexer</span><span class="p">(</span><span class="n">inputCol</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">outputCol</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">_idx"</span><span class="p">,</span> <span class="n">handleInvalid</span><span class="o">=</span><span class="s2">"keep"</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categorical_cols</span><span class="p">]</span>
+<span class="n">encoders</span> <span class="o">=</span> <span class="p">[</span><span class="n">SparkOHE</span><span class="p">(</span><span class="n">inputCol</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">_idx"</span><span class="p">,</span> <span class="n">outputCol</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">_ohe"</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categorical_cols</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="vectorassembler-standardscaler">
+<h2>6. VectorAssembler + StandardScaler<a class="headerlink" href="#vectorassembler-standardscaler" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">numeric_cols_spark</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">NUMERIC_COLS</span>
+<span class="n">assembler_inputs</span> <span class="o">=</span> <span class="n">numeric_cols_spark</span> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">_ohe"</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categorical_cols</span><span class="p">]</span>
+<span class="n">assembler</span> <span class="o">=</span> <span class="n">VectorAssembler</span><span class="p">(</span><span class="n">inputCols</span><span class="o">=</span><span class="n">assembler_inputs</span><span class="p">,</span> <span class="n">outputCol</span><span class="o">=</span><span class="s2">"features_raw"</span><span class="p">)</span>
+<span class="n">scaler</span> <span class="o">=</span> <span class="n">SparkScaler</span><span class="p">(</span><span class="n">inputCol</span><span class="o">=</span><span class="s2">"features_raw"</span><span class="p">,</span> <span class="n">outputCol</span><span class="o">=</span><span class="s2">"features"</span><span class="p">,</span> <span class="n">withMean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">withStd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="ejecutar-el-pipeline-de-transformacion-y-cachear">
+<h2>7. Ejecutar el pipeline de transformación y cachear<a class="headerlink" href="#ejecutar-el-pipeline-de-transformacion-y-cachear" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">.persist(StorageLevel.MEMORY_AND_DISK)</span></code> es obligatorio por el enunciado.
+Se usa <code class="docutils literal notranslate"><span class="pre">MEMORY_AND_DISK</span></code> (no solo <code class="docutils literal notranslate"><span class="pre">.cache()</span></code>, que es memoria pura) porque
+aunque esta máquina tiene bastante RAM, es la misma política robusta usada
+en Colab: si no cabe todo en memoria, Spark derrama a disco en vez de
+fallar.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.ml</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyspark</span><span class="w"> </span><span class="kn">import</span> <span class="n">StorageLevel</span>
+
+<span class="n">prep_pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">stages</span><span class="o">=</span><span class="n">indexers</span> <span class="o">+</span> <span class="n">encoders</span> <span class="o">+</span> <span class="p">[</span><span class="n">assembler</span><span class="p">,</span> <span class="n">scaler</span><span class="p">])</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">prep_model</span> <span class="o">=</span> <span class="n">prep_pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sdf</span><span class="p">)</span>
+<span class="n">sdf_features</span> <span class="o">=</span> <span class="n">prep_model</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">sdf</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"features"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)</span>
+<span class="n">sdf_features</span> <span class="o">=</span> <span class="n">sdf_features</span><span class="o">.</span><span class="n">persist</span><span class="p">(</span><span class="n">StorageLevel</span><span class="o">.</span><span class="n">MEMORY_AND_DISK</span><span class="p">)</span>
+<span class="n">n_cached</span> <span class="o">=</span> <span class="n">sdf_features</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>  <span class="c1"># fuerza la materialización del cache (accion pequena: un entero)</span>
+<span class="n">t_pipeline</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pipeline de preprocesamiento (fit+transform+persist) en </span><span class="si">{</span><span class="n">t_pipeline</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s | filas cacheadas: </span><span class="si">{</span><span class="n">n_cached</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Pipeline de preprocesamiento (fit+transform+persist) en 46.82s | filas cacheadas: 2,260,668
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="division-train-test-80-20-estratificada">
+<h2>8. División train/test 80/20 estratificada<a class="headerlink" href="#division-train-test-80-20-estratificada" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">randomSplit</span></code> no tiene un parámetro <code class="docutils literal notranslate"><span class="pre">stratify=</span></code> nativo como scikit-learn.
+Para lograr el mismo efecto, se separa por clase, se aplica <code class="docutils literal notranslate"><span class="pre">randomSplit</span></code>
+a cada una por separado y se unen — así la proporción de <code class="docutils literal notranslate"><span class="pre">default</span></code> queda
+igual en train y test, igual que con <code class="docutils literal notranslate"><span class="pre">stratify=y</span></code> en pandas.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="n">class0</span> <span class="o">=</span> <span class="n">sdf_features</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"default"</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">class1</span> <span class="o">=</span> <span class="n">sdf_features</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"default"</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)</span>
+
+<span class="n">train0</span><span class="p">,</span> <span class="n">test0</span> <span class="o">=</span> <span class="n">class0</span><span class="o">.</span><span class="n">randomSplit</span><span class="p">([</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">train1</span><span class="p">,</span> <span class="n">test1</span> <span class="o">=</span> <span class="n">class1</span><span class="o">.</span><span class="n">randomSplit</span><span class="p">([</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">train_df</span> <span class="o">=</span> <span class="n">train0</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">train1</span><span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">(</span><span class="n">StorageLevel</span><span class="o">.</span><span class="n">MEMORY_AND_DISK</span><span class="p">)</span>
+<span class="n">test_df</span> <span class="o">=</span> <span class="n">test0</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">test1</span><span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">(</span><span class="n">StorageLevel</span><span class="o">.</span><span class="n">MEMORY_AND_DISK</span><span class="p">)</span>
+
+<span class="n">n_train</span> <span class="o">=</span> <span class="n">train_df</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+<span class="n">n_test</span> <span class="o">=</span> <span class="n">test_df</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+<span class="n">t_split</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Train: </span><span class="si">{</span><span class="n">n_train</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> | Test: </span><span class="si">{</span><span class="n">n_test</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> | split estratificado en </span><span class="si">{</span><span class="n">t_split</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Train: 1,807,851 | Test: 452,817 | split estratificado en 21.43s
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="guardar-splits-y-metadatos">
+<h2>9. Guardar splits y metadatos<a class="headerlink" href="#guardar-splits-y-metadatos" title="Link to this heading">#</a></h2>
+<p>Se guardan como Parquet (formato nativo de Spark, columnar) para que
+<code class="docutils literal notranslate"><span class="pre">05_modeling_spark.ipynb</span></code> no tenga que rehacer todo este pipeline.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="s2">"overwrite"</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">DATA_DIR</span><span class="si">}</span><span class="s2">/spark_train.parquet"</span><span class="p">)</span>
+<span class="n">test_df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="s2">"overwrite"</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">DATA_DIR</span><span class="si">}</span><span class="s2">/spark_test.parquet"</span><span class="p">)</span>
+
+<span class="n">timing</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"read_declare_seconds"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">t_read</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"count_after_read_seconds"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">t_count</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"fit_transform_persist_seconds"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">t_pipeline</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"stratified_split_seconds"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">t_split</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="s2">"n_rows"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_rows_raw</span><span class="p">),</span> <span class="s2">"n_train"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_train</span><span class="p">),</span> <span class="s2">"n_test"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_test</span><span class="p">),</span>
+    <span class="s2">"n_features_assembled"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">assembler_inputs</span><span class="p">),</span>
+    <span class="s2">"spark_config"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"driver_memory_gb"</span><span class="p">:</span> <span class="n">driver_mem_gb</span><span class="p">,</span> <span class="s2">"shuffle_partitions"</span><span class="p">:</span> <span class="n">shuffle_partitions</span><span class="p">,</span>
+        <span class="s2">"detected_resources"</span><span class="p">:</span> <span class="n">res</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+<span class="n">utils</span><span class="o">.</span><span class="n">save_json</span><span class="p">(</span><span class="n">timing</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">/03_spark_preprocessing_timing.json"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">timing</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{'read_declare_seconds': 2.77, 'count_after_read_seconds': 1.405, 'fit_transform_persist_seconds': 46.822, 'stratified_split_seconds': 21.427, 'n_rows': 2260701, 'n_train': 1807851, 'n_test': 452817, 'n_features_assembled': 23, 'spark_config': {'driver_memory_gb': 32, 'shuffle_partitions': 36, 'detected_resources': {'cpu_count': 12, 'total_ram_gb': 63.3, 'free_ram_gb': 52.49}}}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="verificacion">
+<h2>10. Verificación<a class="headerlink" href="#verificacion" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_df</span><span class="o">.</span><span class="n">printSchema</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Proporción de default en train:"</span><span class="p">,</span> <span class="n">train_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"default"</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">/</span> <span class="n">n_train</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Proporción de default en test:"</span><span class="p">,</span> <span class="n">test_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"default"</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">/</span> <span class="n">n_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>root
+ |-- features: vector (nullable = true)
+ |-- default: double (nullable = false)
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Proporción de default en train: 0.11884939632746283
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Proporción de default en test: 0.11858212037092247
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./notebooks"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="02_preprocessing_sklearn.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">02 · Preprocesamiento — scikit-learn</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="04_modeling_sklearn.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">04 · Modelado — scikit-learn (RandomForest + GridSearchCV)</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#java-utils-py-local">1. Java + utils.py local</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuracion-de-la-sesion-de-spark">2. Configuración de la sesión de Spark</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#leer-el-csv-completo-con-spark">3. Leer el CSV completo con Spark</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limpieza-filas-vacias-target-emp-length-nulos-categorias-raras">4. Limpieza: filas vacías, target, <code class="docutils literal notranslate"><span class="pre">emp_length</span></code>, nulos, categorías raras</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stringindexer-onehotencoder">5. StringIndexer + OneHotEncoder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vectorassembler-standardscaler">6. VectorAssembler + StandardScaler</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ejecutar-el-pipeline-de-transformacion-y-cachear">7. Ejecutar el pipeline de transformación y cachear</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#division-train-test-80-20-estratificada">8. División train/test 80/20 estratificada</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-splits-y-metadatos">9. Guardar splits y metadatos</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificacion">10. Verificación</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Santiago Hurtado, Juan Marín, Andrés Parejo
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

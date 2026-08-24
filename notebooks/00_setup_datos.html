@@ -1,0 +1,1244 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>00 · Preparación de datos (Lending Club) &#8212; Predicción de Default en Préstamos — Lending Club: scikit-learn vs PySpark</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="../_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/00_setup_datos';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="01 · Análisis Exploratorio de Datos (EDA)" href="01_eda.html" />
+    <link rel="prev" title="Predicción de Default en Préstamos — Lending Club" href="../intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Predicción de Default en Préstamos — Lending Club: scikit-learn vs PySpark</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">00 · Preparación de datos (Lending Club)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="01_eda.html">01 · Análisis Exploratorio de Datos (EDA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_preprocessing_sklearn.html">02 · Preprocesamiento — scikit-learn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_preprocessing_spark.html">03 · Preprocesamiento — PySpark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_modeling_sklearn.html">04 · Modelado — scikit-learn (RandomForest + GridSearchCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_modeling_spark.html">05 · Modelado — PySpark (RandomForest + CrossValidator)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_interpretability_lime.html">06 · Interpretabilidad con LIME</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_comparison.html">07 · Comparación de resultados: scikit-learn vs PySpark</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conclusions.html">Conclusiones y reflexión crítica</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/notebooks/00_setup_datos.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>00 · Preparación de datos (Lending Club)</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cargar-utils-py-local">1. Cargar <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> local</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificar-el-csv-crudo-ya-cacheado-en-disco-local">2. Verificar el CSV crudo (ya cacheado en disco local)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#escaneo-completo-de-las-151-columnas-originales">3. Escaneo completo de las 151 columnas originales</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#seleccion-de-columnas-de-trabajo-justificacion">4. Selección de columnas de trabajo (justificación)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-el-dataset-limpio-localmente">5. Guardar el dataset limpio localmente</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificacion-final">6. Verificación final</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="preparacion-de-datos-lending-club">
+<h1>00 · Preparación de datos (Lending Club)<a class="headerlink" href="#preparacion-de-datos-lending-club" title="Link to this heading">#</a></h1>
+<p><strong>Autores:</strong> Santiago Hurtado, Juan Marín, Andrés Parejo</p>
+<p>Ejecutado <strong>localmente</strong> (PC propio, no Google Colab): el CSV crudo ya
+estaba descargado en disco de una corrida anterior de Kaggle, así que este
+notebook parte directo del escaneo completo de las 151 columnas originales
+y produce el Parquet limpio de ~24 columnas justificadas que reutilizan
+<strong>todos</strong> los notebooks siguientes (EDA, preprocesamiento sklearn, LIME).
+El preprocesamiento de <strong>PySpark</strong> vuelve a leer el CSV crudo de forma
+independiente (notebook 03), tal como exige el enunciado.</p>
+<p><strong>Condición obligatoria del proyecto:</strong> no se muestrea ni se reduce el
+número de filas en ningún momento. Las 2,260,701 filas originales se
+mantienen íntegras; lo único que se reduce aquí es el número de <em>columnas</em>
+leídas (de 151 a ~24), lo cual el propio enunciado permite explícitamente
+en la sección de preprocesamiento (“Seleccionar variables relevantes”).</p>
+<section id="cargar-utils-py-local">
+<h2>1. Cargar <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> local<a class="headerlink" href="#cargar-utils-py-local" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">".."</span><span class="p">))</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">utils</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib</span>
+<span class="n">importlib</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">utils</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"utils.py listo en:"</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">LOCAL_ROOT</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">get_system_resources</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>utils.py listo en: C:\Users\boolean\Downloads\requirements fin\Copy of requirements
+{'cpu_count': 12, 'total_ram_gb': 63.3, 'free_ram_gb': 47.12}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="verificar-el-csv-crudo-ya-cacheado-en-disco-local">
+<h2>2. Verificar el CSV crudo (ya cacheado en disco local)<a class="headerlink" href="#verificar-el-csv-crudo-ya-cacheado-en-disco-local" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"No se encontró el CSV en </span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="si">}</span><span class="s2">"</span>
+<span class="n">size_gb</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"CSV local listo: </span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">size_gb</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB)"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CSV local listo: C:\Users\boolean\Downloads\archive\accepted_2007_to_2018q4.csv\accepted_2007_to_2018Q4.csv (1.68 GB)
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="escaneo-completo-de-las-151-columnas-originales">
+<h2>3. Escaneo completo de las 151 columnas originales<a class="headerlink" href="#escaneo-completo-de-las-151-columnas-originales" title="Link to this heading">#</a></h2>
+<p>Satisface literalmente el requisito de “cargar el dataset completo… <code class="docutils literal notranslate"><span class="pre">info()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">describe()</span></code>, dimensión” <strong>antes</strong> de reducir a las columnas de trabajo. Se
+hace en chunks de 200,000 filas para no materializar 151 columnas × 2.26M
+filas en memoria a la vez.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">scan</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">full_column_scan</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">)</span>
+<span class="n">t_scan</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="n">utils</span><span class="o">.</span><span class="n">save_json</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">FULL_SCAN_JSON_DRIVE</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Filas: </span><span class="si">{</span><span class="n">scan</span><span class="p">[</span><span class="s1">'n_rows'</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> | Columnas: </span><span class="si">{</span><span class="n">scan</span><span class="p">[</span><span class="s1">'n_cols'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | tiempo de escaneo: </span><span class="si">{</span><span class="n">t_scan</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Filas: 2,260,701 | Columnas: 151 | tiempo de escaneo: 40.8s
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">null_pct_full</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">scan</span><span class="p">[</span><span class="s2">"null_pct"</span><span class="p">])</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">null_pct_full</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">"% nulos"</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>% nulos</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>member_id</th>
+      <td>100.000</td>
+    </tr>
+    <tr>
+      <th>orig_projected_additional_accrued_interest</th>
+      <td>99.617</td>
+    </tr>
+    <tr>
+      <th>hardship_reason</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_payoff_balance_amount</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_last_payment_amount</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>payment_plan_start_date</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_type</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_status</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_start_date</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>deferral_term</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_amount</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_dpd</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_loan_status</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_length</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>hardship_end_date</th>
+      <td>99.517</td>
+    </tr>
+    <tr>
+      <th>settlement_status</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>debt_settlement_flag_date</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>settlement_term</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>settlement_percentage</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>settlement_date</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>settlement_amount</th>
+      <td>98.485</td>
+    </tr>
+    <tr>
+      <th>sec_app_mths_since_last_major_derog</th>
+      <td>98.410</td>
+    </tr>
+    <tr>
+      <th>sec_app_revol_util</th>
+      <td>95.303</td>
+    </tr>
+    <tr>
+      <th>sec_app_num_rev_accts</th>
+      <td>95.222</td>
+    </tr>
+    <tr>
+      <th>sec_app_earliest_cr_line</th>
+      <td>95.222</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>De las 151 columnas originales, el bloque de arriba muestra las 25 con más
+valores faltantes. Muchas superan 70–90% de nulos: son campos de
+<em>hardship</em>/reestructuración (<code class="docutils literal notranslate"><span class="pre">hardship_*</span></code>, <code class="docutils literal notranslate"><span class="pre">settlement_*</span></code>), variables de
+co-solicitante (<code class="docutils literal notranslate"><span class="pre">sec_app_*</span></code>, <code class="docutils literal notranslate"><span class="pre">annual_inc_joint</span></code>) que solo aplican a
+préstamos conjuntos, o campos legados que Lending Club dejó de reportar en
+años tempranos. Ninguna de estas entra al subconjunto de 24 columnas de
+trabajo (ver celda siguiente) — por eso no se necesita una estrategia de
+imputación agresiva para ellas.</p>
+</section>
+<section id="seleccion-de-columnas-de-trabajo-justificacion">
+<h2>4. Selección de columnas de trabajo (justificación)<a class="headerlink" href="#seleccion-de-columnas-de-trabajo-justificacion" title="Link to this heading">#</a></h2>
+<p>De las 151 columnas se seleccionan <strong>24 + el target</strong>, bajo dos criterios:</p>
+<ol class="arabic simple">
+<li><p><strong>Disponibilidad al momento de originar el préstamo.</strong> Se excluyen ~127
+columnas post-originación (<code class="docutils literal notranslate"><span class="pre">total_pymnt</span></code>, <code class="docutils literal notranslate"><span class="pre">recoveries</span></code>, <code class="docutils literal notranslate"><span class="pre">out_prncp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">last_pymnt_d</span></code>, <code class="docutils literal notranslate"><span class="pre">hardship_*</span></code>, <code class="docutils literal notranslate"><span class="pre">settlement_*</span></code>, <code class="docutils literal notranslate"><span class="pre">last_fico_range_*</span></code>, etc.)
+porque solo se conocen <strong>después</strong> de que el préstamo empieza a pagarse
+o a incumplir — usarlas sería fuga de información (<em>data leakage</em>): el
+modelo “adivinaría” el resultado en vez de predecirlo.</p></li>
+<li><p><strong>Relevancia explícita del enunciado</strong> (<code class="docutils literal notranslate"><span class="pre">loan_amnt</span></code>, <code class="docutils literal notranslate"><span class="pre">int_rate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">annual_inc</span></code>, <code class="docutils literal notranslate"><span class="pre">dti</span></code>, <code class="docutils literal notranslate"><span class="pre">fico_range_high</span></code>, <code class="docutils literal notranslate"><span class="pre">emp_length</span></code>, <code class="docutils literal notranslate"><span class="pre">purpose</span></code>,
+<code class="docutils literal notranslate"><span class="pre">home_ownership</span></code>, <code class="docutils literal notranslate"><span class="pre">addr_state</span></code>, <code class="docutils literal notranslate"><span class="pre">verification_status</span></code>) más predictores
+estándar de riesgo crediticio disponibles en el momento de la solicitud
+(<code class="docutils literal notranslate"><span class="pre">installment</span></code>, <code class="docutils literal notranslate"><span class="pre">revol_util</span></code>, <code class="docutils literal notranslate"><span class="pre">revol_bal</span></code>, <code class="docutils literal notranslate"><span class="pre">open_acc</span></code>, <code class="docutils literal notranslate"><span class="pre">total_acc</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mort_acc</span></code>, <code class="docutils literal notranslate"><span class="pre">pub_rec</span></code>, <code class="docutils literal notranslate"><span class="pre">delinq_2yrs</span></code>, <code class="docutils literal notranslate"><span class="pre">term</span></code>, <code class="docutils literal notranslate"><span class="pre">grade</span></code>,
+<code class="docutils literal notranslate"><span class="pre">initial_list_status</span></code>, <code class="docutils literal notranslate"><span class="pre">application_type</span></code>).</p></li>
+</ol>
+<p>Esto <strong>no</strong> es muestreo de filas — las 2,260,701 filas permanecen intactas;
+solo se reduce cuántas <em>columnas</em> de cada fila se cargan en memoria, algo
+que el propio enunciado permite (“Seleccionar variables relevantes”).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">build_clean_dataframe</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">RAW_CSV_LOCAL</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{'n_before': 2260701, 'n_after': 2260668, 'n_dropped_blank_rows': 33}
+&lt;class 'pandas.core.frame.DataFrame'&gt;
+Index: 2260668 entries, 0 to 2260698
+Data columns (total 30 columns):
+ #   Column               Dtype         
+---  ------               -----         
+ 0   loan_amnt            float32       
+ 1   term                 category      
+ 2   int_rate             float32       
+ 3   installment          float32       
+ 4   grade                category      
+ 5   sub_grade            category      
+ 6   emp_length           category      
+ 7   home_ownership       category      
+ 8   annual_inc           float32       
+ 9   verification_status  category      
+ 10  issue_d              object        
+ 11  loan_status          category      
+ 12  purpose              category      
+ 13  addr_state           category      
+ 14  dti                  float32       
+ 15  delinq_2yrs          float32       
+ 16  fico_range_low       float32       
+ 17  fico_range_high      float32       
+ 18  open_acc             float32       
+ 19  pub_rec              float32       
+ 20  revol_bal            float32       
+ 21  revol_util           float32       
+ 22  total_acc            float32       
+ 23  initial_list_status  category      
+ 24  application_type     category      
+ 25  mort_acc             float32       
+ 26  emp_length_num       float32       
+ 27  issue_d_parsed       datetime64[ns]
+ 28  issue_year           Int64         
+ 29  default              int8          
+dtypes: Int64(1), category(11), datetime64[ns](1), float32(15), int8(1), object(1)
+memory usage: 226.4+ MB
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">n_dropped_blank_rows</span></code> corresponde a un puñado de filas (~33 de 2,260,701 =
+0.0015%) completamente vacías al final del CSV — sin <code class="docutils literal notranslate"><span class="pre">loan_status</span></code> ni
+ningún otro campo. Se excluyen porque no tienen target utilizable (no se
+puede entrenar ni evaluar con una fila sin etiqueta); no es una forma de
+muestreo, es descarte de filas corruptas/sin información.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>loan_amnt</th>
+      <th>term</th>
+      <th>int_rate</th>
+      <th>installment</th>
+      <th>grade</th>
+      <th>sub_grade</th>
+      <th>emp_length</th>
+      <th>home_ownership</th>
+      <th>annual_inc</th>
+      <th>verification_status</th>
+      <th>...</th>
+      <th>revol_bal</th>
+      <th>revol_util</th>
+      <th>total_acc</th>
+      <th>initial_list_status</th>
+      <th>application_type</th>
+      <th>mort_acc</th>
+      <th>emp_length_num</th>
+      <th>issue_d_parsed</th>
+      <th>issue_year</th>
+      <th>default</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>3600.0</td>
+      <td>36 months</td>
+      <td>13.990000</td>
+      <td>123.029999</td>
+      <td>C</td>
+      <td>C4</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>55000.0</td>
+      <td>Not Verified</td>
+      <td>...</td>
+      <td>2765.0</td>
+      <td>29.700001</td>
+      <td>13.0</td>
+      <td>w</td>
+      <td>Individual</td>
+      <td>1.0</td>
+      <td>10.0</td>
+      <td>2015-12-01</td>
+      <td>2015</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>24700.0</td>
+      <td>36 months</td>
+      <td>11.990000</td>
+      <td>820.280029</td>
+      <td>C</td>
+      <td>C1</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>65000.0</td>
+      <td>Not Verified</td>
+      <td>...</td>
+      <td>21470.0</td>
+      <td>19.200001</td>
+      <td>38.0</td>
+      <td>w</td>
+      <td>Individual</td>
+      <td>4.0</td>
+      <td>10.0</td>
+      <td>2015-12-01</td>
+      <td>2015</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>20000.0</td>
+      <td>60 months</td>
+      <td>10.780000</td>
+      <td>432.660004</td>
+      <td>B</td>
+      <td>B4</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>63000.0</td>
+      <td>Not Verified</td>
+      <td>...</td>
+      <td>7869.0</td>
+      <td>56.200001</td>
+      <td>18.0</td>
+      <td>w</td>
+      <td>Joint App</td>
+      <td>5.0</td>
+      <td>10.0</td>
+      <td>2015-12-01</td>
+      <td>2015</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>35000.0</td>
+      <td>60 months</td>
+      <td>14.850000</td>
+      <td>829.900024</td>
+      <td>C</td>
+      <td>C5</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>110000.0</td>
+      <td>Source Verified</td>
+      <td>...</td>
+      <td>7802.0</td>
+      <td>11.600000</td>
+      <td>17.0</td>
+      <td>w</td>
+      <td>Individual</td>
+      <td>1.0</td>
+      <td>10.0</td>
+      <td>2015-12-01</td>
+      <td>2015</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10400.0</td>
+      <td>60 months</td>
+      <td>22.450001</td>
+      <td>289.910004</td>
+      <td>F</td>
+      <td>F1</td>
+      <td>3 years</td>
+      <td>MORTGAGE</td>
+      <td>104433.0</td>
+      <td>Source Verified</td>
+      <td>...</td>
+      <td>21929.0</td>
+      <td>64.500000</td>
+      <td>35.0</td>
+      <td>w</td>
+      <td>Individual</td>
+      <td>6.0</td>
+      <td>3.0</td>
+      <td>2015-12-01</td>
+      <td>2015</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 30 columns</p>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>loan_amnt</th>
+      <th>term</th>
+      <th>int_rate</th>
+      <th>installment</th>
+      <th>grade</th>
+      <th>sub_grade</th>
+      <th>emp_length</th>
+      <th>home_ownership</th>
+      <th>annual_inc</th>
+      <th>verification_status</th>
+      <th>...</th>
+      <th>revol_bal</th>
+      <th>revol_util</th>
+      <th>total_acc</th>
+      <th>initial_list_status</th>
+      <th>application_type</th>
+      <th>mort_acc</th>
+      <th>emp_length_num</th>
+      <th>issue_d_parsed</th>
+      <th>issue_year</th>
+      <th>default</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2260694</th>
+      <td>24000.0</td>
+      <td>60 months</td>
+      <td>12.79</td>
+      <td>543.500000</td>
+      <td>C</td>
+      <td>C1</td>
+      <td>7 years</td>
+      <td>MORTGAGE</td>
+      <td>95000.0</td>
+      <td>Source Verified</td>
+      <td>...</td>
+      <td>49431.0</td>
+      <td>84.400002</td>
+      <td>54.0</td>
+      <td>f</td>
+      <td>Individual</td>
+      <td>0.0</td>
+      <td>7.0</td>
+      <td>2016-10-01</td>
+      <td>2016</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2260695</th>
+      <td>24000.0</td>
+      <td>60 months</td>
+      <td>10.49</td>
+      <td>515.739990</td>
+      <td>B</td>
+      <td>B3</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>108000.0</td>
+      <td>Not Verified</td>
+      <td>...</td>
+      <td>21665.0</td>
+      <td>39.000000</td>
+      <td>58.0</td>
+      <td>f</td>
+      <td>Individual</td>
+      <td>4.0</td>
+      <td>10.0</td>
+      <td>2016-10-01</td>
+      <td>2016</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2260696</th>
+      <td>40000.0</td>
+      <td>60 months</td>
+      <td>10.49</td>
+      <td>859.559998</td>
+      <td>B</td>
+      <td>B3</td>
+      <td>9 years</td>
+      <td>MORTGAGE</td>
+      <td>227000.0</td>
+      <td>Verified</td>
+      <td>...</td>
+      <td>8633.0</td>
+      <td>64.900002</td>
+      <td>37.0</td>
+      <td>f</td>
+      <td>Individual</td>
+      <td>3.0</td>
+      <td>9.0</td>
+      <td>2016-10-01</td>
+      <td>2016</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2260697</th>
+      <td>24000.0</td>
+      <td>60 months</td>
+      <td>14.49</td>
+      <td>564.559998</td>
+      <td>C</td>
+      <td>C4</td>
+      <td>6 years</td>
+      <td>RENT</td>
+      <td>110000.0</td>
+      <td>Not Verified</td>
+      <td>...</td>
+      <td>17641.0</td>
+      <td>68.099998</td>
+      <td>31.0</td>
+      <td>f</td>
+      <td>Individual</td>
+      <td>2.0</td>
+      <td>6.0</td>
+      <td>2016-10-01</td>
+      <td>2016</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2260698</th>
+      <td>14000.0</td>
+      <td>60 months</td>
+      <td>14.49</td>
+      <td>329.329987</td>
+      <td>C</td>
+      <td>C4</td>
+      <td>10+ years</td>
+      <td>MORTGAGE</td>
+      <td>95000.0</td>
+      <td>Verified</td>
+      <td>...</td>
+      <td>7662.0</td>
+      <td>54.000000</td>
+      <td>22.0</td>
+      <td>w</td>
+      <td>Individual</td>
+      <td>1.0</td>
+      <td>10.0</td>
+      <td>2016-10-01</td>
+      <td>2016</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 30 columns</p>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"Distribución de loan_status (previo a colapsar en `default`):"</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">"loan_status"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Distribución de loan_status (previo a colapsar en `default`):
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>loan_status
+Fully Paid                                             1076751
+Current                                                 878317
+Charged Off                                             268559
+Late (31-120 days)                                       21467
+In Grace Period                                           8436
+Late (16-30 days)                                         4349
+Does not meet the credit policy. Status:Fully Paid        1988
+Does not meet the credit policy. Status:Charged Off        761
+Default                                                     40
+Name: count, dtype: int64
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"Distribución de la variable objetivo `default`:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"default"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">((</span><span class="n">df</span><span class="p">[</span><span class="s2">"default"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Distribución de la variable objetivo `default`:
+default
+0    1992109
+1     268559
+Name: count, dtype: int64
+default
+0    88.12
+1    11.88
+Name: proportion, dtype: float64
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="guardar-el-dataset-limpio-localmente">
+<h2>5. Guardar el dataset limpio localmente<a class="headerlink" href="#guardar-el-dataset-limpio-localmente" title="Link to this heading">#</a></h2>
+<p>Parquet conserva los dtypes (<code class="docutils literal notranslate"><span class="pre">category</span></code>, <code class="docutils literal notranslate"><span class="pre">float32</span></code>) y es mucho más rápido
+de releer que reparsear el CSV de 1.67GB en cada notebook siguiente.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">CLEAN_PARQUET_DRIVE</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">t_save</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+<span class="n">utils</span><span class="o">.</span><span class="n">save_json</span><span class="p">(</span>
+    <span class="p">{</span><span class="o">**</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"save_parquet_seconds"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">t_save</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="s2">"n_rows_final"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="s2">"n_cols_final"</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
+    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">utils</span><span class="o">.</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">/00_clean_meta.json"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Parquet guardado en </span><span class="si">{</span><span class="n">t_save</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s -&gt;"</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">CLEAN_PARQUET_DRIVE</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Parquet guardado en 1.8s -&gt; C:\Users\boolean\Downloads\requirements fin\Copy of requirements/data/clean_full.parquet
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="verificacion-final">
+<h2>6. Verificación final<a class="headerlink" href="#verificacion-final" title="Link to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_check</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">CLEAN_PARQUET_DRIVE</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">df_check</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="s2">"Filas no coinciden tras guardar/releer"</span>
+<span class="k">assert</span> <span class="n">df_check</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1_300_000</span><span class="p">,</span> <span class="s2">"Menos de 1.3M filas -- viola la condicion obligatoria del dataset completo"</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"OK -&gt;"</span><span class="p">,</span> <span class="n">df_check</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s2">"· filas &gt;= 1.3M:"</span><span class="p">,</span> <span class="n">df_check</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1_300_000</span><span class="p">)</span>
+<span class="n">df_check</span><span class="o">.</span><span class="n">dtypes</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>OK -&gt; (2260668, 30) · filas &gt;= 1.3M: True
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>loan_amnt                     float32
+term                         category
+int_rate                      float32
+installment                   float32
+grade                        category
+sub_grade                    category
+emp_length                   category
+home_ownership               category
+annual_inc                    float32
+verification_status          category
+issue_d                        object
+loan_status                  category
+purpose                      category
+addr_state                   category
+dti                           float32
+delinq_2yrs                   float32
+fico_range_low                float32
+fico_range_high               float32
+open_acc                      float32
+pub_rec                       float32
+revol_bal                     float32
+revol_util                    float32
+total_acc                     float32
+initial_list_status          category
+application_type             category
+mort_acc                      float32
+emp_length_num                float32
+issue_d_parsed         datetime64[ns]
+issue_year                      Int64
+default                          int8
+dtype: object
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./notebooks"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Predicción de Default en Préstamos — Lending Club</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="01_eda.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">01 · Análisis Exploratorio de Datos (EDA)</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cargar-utils-py-local">1. Cargar <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> local</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificar-el-csv-crudo-ya-cacheado-en-disco-local">2. Verificar el CSV crudo (ya cacheado en disco local)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#escaneo-completo-de-las-151-columnas-originales">3. Escaneo completo de las 151 columnas originales</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#seleccion-de-columnas-de-trabajo-justificacion">4. Selección de columnas de trabajo (justificación)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#guardar-el-dataset-limpio-localmente">5. Guardar el dataset limpio localmente</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verificacion-final">6. Verificación final</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Santiago Hurtado, Juan Marín, Andrés Parejo
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
